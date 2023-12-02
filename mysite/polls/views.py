@@ -1,47 +1,30 @@
-# views.py
-from django.shortcuts import render
-from polls.models import  Question
-from django.shortcuts import render, get_object_or_404
-from polls.models import Question,Choice
-from django.http import HttpResponseRedirect
-from polls.forms import NameForm
+from django.views.generic.base import TemplateView
+from django.views.generic import  ListView
+from django.views.generic import  DeleteView
+from polls.models import Question, Choice
 
-def index(request):
-    latest_question_list = Question.objects.all().order_by('-pub_date')[:5]
-    context = {'latest_question_list':latest_question_list}
-    return render(request, 'polls/index.html',context)
+# Create your views here.
 
-def detail(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    return render(request,'polls/detail.html',{question:question})
+#--- TemplateView
+class PollsModelView(TemplateView):
+    template_name = 'polls/index.html'
 
-def vote(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    try:
-        selected_choice = question.choice_set.get(pk=request.POST['choice'])
-    except(KeyError, Choice.DoesNotExist):
-        return render(request, 'polls/detail.html'),{
-            'question':question,
-            'error_message':"You didn't select a choice",
-        }
-    else:
-        selected_choice.votes += 1
-        selected_choice.save()
-        return HttpResponseRedirect(reverse('polls:results', args=(question_id,)))
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['model_list'] = ['Question', 'Choice']
+        return context
 
-    def results(request, question_id):
-        question = get_object_or_404(Question, pk=question_id)
-        return render(request, 'polls/results.html',{'question':question})
+    #---ListView
+class QuestionList(ListView):
+    model = Question
 
+class ChoiceList(ListView):
+    model = Choice
 
-def name(request):
-    if request.method == 'POST':
-        form = NameForm(request.POST)
+    #--- DetailView
+class QuestionDetail(DeleteView):
+    model = Question
 
-        if form.is_valid():
-            new_name = form.cleaned_data['name']
-            return HttpResponseRedirect('')
+class ChoiceDetail(DeleteView):
+    model = Choice
 
-    else:
-        form = NameForm()
-        return render(request, 'polls/name.html',{'form':form})
